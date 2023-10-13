@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guess the Note</title>
+    <script src="https://cdn.jsdelivr.net/npm/vexflow/releases/vexflow-debug.js"></script>
+    <script src="https://unpkg.com/tone"></script>
+    <style>
+        #notation {
+            width: 400px;
+            height: 150px;
+            margin-bottom: 20px;
+        }
+
+        .answer-btn {
+            margin-right: 10px;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        #score {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            font-size: 24px;
+        }
+    </style>
+</head>
+
+<body>
+<h1>Guess the Note</h1>
+<div id="notation"></div>
+
+<div id="answer-buttons">
+    <button class="answer-btn"></button>
+    <button class="answer-btn"></button>
+    <button class="answer-btn"></button>
+    <button class="answer-btn"></button>
+</div>
+
+<div id="result-message"></div>
+<div id="score">Score: <span id="score-value">0</span></div>
+
+<script>
+    // Create VexFlow renderer and context
+    var VF = Vex.Flow;
+    var div = document.getElementById("notation");
+    var renderer = new VF.Renderer(div, VF.Renderer.Backends.SVG);
+    var context = renderer.getContext();
+
+    var notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+    var correctNote = notes[Math.floor(Math.random() * notes.length)];
+    var answerChoices = notes.slice().sort(function() {
+        return 0.5 - Math.random();
+    }).slice(0, 4);
+    answerChoices[Math.floor(Math.random() * 4)] = correctNote;
+
+    var stave = new VF.Stave(10, 40, 400);
+    var note = new VF.StaveNote({ keys: [correctNote + '/4'], duration: 'q' });
+    var voice = new VF.Voice({ num_beats: 1, beat_value: 4 });
+    voice.addTickables([note]);
+    var formatter = new VF.Formatter().joinVoices([voice]).format([voice], 400);
+    stave.setContext(context).draw();
+    voice.draw(context, stave);
+
+    var answerButtons = document.querySelectorAll('.answer-btn');
+    answerChoices.forEach(function(choice, index) {
+        answerButtons[index].textContent = choice;
+    });
+
+    var score = 0;
+    var scoreValue = document.getElementById('score-value');
+    var resultMessage = document.getElementById('result-message');
+
+    function updateScore(correct) {
+        if (correct) {
+            score++;
+        } else {
+            score = 0;
+        }
+        scoreValue.textContent = score;
+    }
+
+    answerButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+            var selectedAnswer = this.textContent;
+            var correct = (selectedAnswer === correctNote);
+
+            if (correct) {
+                resultMessage.textContent = 'Correct!';
+                var synth = new Tone.Synth().toMaster();
+                synth.triggerAttackRelease(selectedAnswer + '4', '4n');
+            } else {
+                resultMessage.textContent = 'Wrong! Correct answer is ' + correctNote;
+            }
+
+            updateScore(correct);
+
+            correctNote = notes[Math.floor(Math.random() * notes.length)];
+            answerChoices = notes.slice().sort(function() {
+                return 0.5 - Math.random();
+            }).slice(0, 4);
+            answerChoices[Math.floor(Math.random() * 4)] = correctNote;
+
+            stave = new VF.Stave(10, 40, 400);
+            note = new VF.StaveNote({ keys: [correctNote + '/4'], duration: 'q' });
+            voice = new VF.Voice({ num_beats: 1, beat_value: 4 });
+            voice.addTickables([note]);
+            formatter = new VF.Formatter().joinVoices([voice]).format([voice], 400);
+            stave.setContext(context).draw();
+            voice.draw(context, stave);
+
+            answerChoices.forEach(function(choice, index) {
+                answerButtons[index].textContent = choice;
+            });
+        });
+    });
+</script>
+</body>
+
+</html>
